@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HornetTech Nexus - Bike Tech & Maintenance Hub</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#fff1f2', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Header / Navigation -->
+    <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div onclick="goHome()" class="flex items-center space-x-2 cursor-pointer">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center shadow-lg shadow-brand-600/20 shrink-0">
+                    <i class="fa-solid fa-motorcycle text-white text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-base font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent block leading-none">HornetTech</span>
+                    <span class="text-[10px] font-semibold text-brand-500 tracking-wider uppercase">Nexus</span>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs (Desktop only) -->
+            <nav id="nav-tabs-container" class="hidden md:flex space-x-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+                <button onclick="switchTab('all')" id="btn-all" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-brand-600 text-white shadow">All Guides</button>
+                <button onclick="switchTab('vlog')" id="btn-vlog" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white">Moto Vlogs</button>
+                <button onclick="switchTab('article')" id="btn-article" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white">Tech Articles</button>
+                <button onclick="switchTab('pic')" id="btn-pic" class="tab-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white">Garage Gallery</button>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <div id="auth-action-container">
+                    <button onclick="openLoginModal()" id="login-nav-btn" class="text-xs font-semibold px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700/60 flex items-center space-x-1.5 shrink-0">
+                        <i class="fa-solid fa-lock text-[10px]"></i>
+                        <span>Admin Login</span>
+                    </button>
+                </div>
+                <button onclick="openModal()" id="create-post-nav-btn" class="hidden bg-brand-600 hover:bg-brand-500 text-white font-medium px-3.5 py-2 rounded-xl text-xs sm:text-sm transition-all shadow-lg shadow-brand-600/20 items-center space-x-1.5 shrink-0">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>New Guide</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-6 sm:py-8 w-full">
+        
+        <!-- FEED VIEW -->
+        <div id="feed-view">
+            <!-- Mobile Filter Bar (Clean horizontal scroll without overlap) -->
+            <div id="mobile-filter-container" class="flex md:hidden overflow-x-auto space-x-2 mb-6 pb-2 scrollbar-none w-full">
+                <button onclick="switchTab('all')" id="m-btn-all" class="m-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap bg-brand-600 text-white shadow">All Guides</button>
+                <button onclick="switchTab('vlog')" id="m-btn-vlog" class="m-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">Moto Vlogs</button>
+                <button onclick="switchTab('article')" id="m-btn-article" class="m-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">Tech Articles</button>
+                <button onclick="switchTab('pic')" id="m-btn-pic" class="m-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">Garage Gallery</button>
+            </div>
+
+            <!-- Thumbnail Grid Feed -->
+            <div id="feed-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Thumbnails rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- FULL ARTICLE / DETAIL VIEW -->
+        <div id="detail-view" class="hidden max-w-3xl mx-auto">
+            <button onclick="goHome()" class="mb-6 inline-flex items-center space-x-2 text-xs font-semibold px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-all">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back to Guides Feed</span>
+            </button>
+            <div id="detail-content-container">
+                <!-- Detailed post injected dynamically -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Admin Login Modal -->
+    <div id="login-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-bold flex items-center space-x-2">
+                    <i class="fa-solid fa-shield-halved text-brand-500"></i>
+                    <span>Admin Authentication</span>
+                </h3>
+                <button onclick="closeLoginModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Admin ID</label>
+                    <input type="text" id="admin-user" required placeholder="Enter username..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Password</label>
+                    <input type="password" id="admin-password" required placeholder="Enter password..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                    <p id="login-error" class="text-red-400 text-xs mt-1.5 hidden">Invalid ID or password. Access denied.</p>
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-brand-600/20">Login as Utsha</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create / Edit Post Modal -->
+    <div id="create-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative my-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold" id="modal-heading">Publish Bike Tech Guide</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <form id="post-form" onsubmit="handlePostSubmit(event)" class="space-y-4">
+                <input type="hidden" id="edit-post-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Guide Category</label>
+                    <select id="post-type" onchange="toggleFormFields()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                        <option value="article">Tech Article / Maintenance Guide</option>
+                        <option value="vlog">Moto Vlog (Video URL)</option>
+                        <option value="pic">Garage / Modification Picture</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Title</label>
+                    <input type="text" id="post-title" required placeholder="e.g., Hornet 2.0 Chain Maintenance & Lube Guide..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                </div>
+                
+                <!-- URL Field (for Vlogs) -->
+                <div id="media-url-container" class="hidden">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1" id="media-label">Video Embed URL</label>
+                    <input type="url" id="post-media-url" placeholder="https://www.youtube.com/embed/..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                </div>
+
+                <!-- File Upload Field (for Pictures) -->
+                <div id="media-file-container" class="hidden">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Upload Picture from Device</label>
+                    <input type="file" id="post-media-file" accept="image/*" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500 text-slate-400">
+                    <input type="hidden" id="existing-media-data">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Technical Content / Steps</label>
+                    <textarea id="post-content" rows="6" required placeholder="Write your step-by-step troubleshooting or technical breakdown here..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-500"></textarea>
+                </div>
+                <button type="submit" id="form-submit-btn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-brand-600/20">Publish Guide</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+        <p>&copy; 2026 HornetTech Nexus. Built by Utsha for Riders & Gearheads.</p>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const ADMIN_USER = "utsha";
+        const ADMIN_PASS = "hornet2";
+
+        let isAdmin = localStorage.getItem('nexus_is_admin') === 'true';
+
+        let posts = JSON.parse(localStorage.getItem('hornet_nexus_posts')) || [
+            {
+                id: 1,
+                type: 'article',
+                title: 'Welcome to HornetTech Nexus!',
+                content: 'Hey riders! This is Utsha. I built this hub to share technical solutions, maintenance tips, and modifications specifically for the Honda Hornet 2.0 and general bike care. Drop your questions or join the discussion in the comments!',
+                media: '',
+                author: 'Utsha',
+                date: 'July 26, 2026',
+                comments: [
+                    { name: 'Rider Fahim', text: 'Awesome initiative Utsha! Looking forward to your chain adjustment tutorial.', media: '' }
+                ]
+            }
+        ];
+
+        let currentTab = 'all';
+        let currentPostId = null;
+
+        function updateAuthUI() {
+            const authContainer = document.getElementById('auth-action-container');
+            const createBtn = document.getElementById('create-post-nav-btn');
+
+            if (isAdmin) {
+                authContainer.innerHTML = `<button onclick="handleLogout()" class="text-xs font-semibold px-3 py-2 rounded-xl bg-red-950/60 hover:bg-red-900/60 text-red-300 transition-all border border-red-800/60 flex items-center space-x-1.5 shrink-0"><i class="fa-solid fa-lock-open text-[10px]"></i><span>Logout</span></button>`;
+                createBtn.classList.remove('hidden');
+                createBtn.classList.add('flex');
+            } else {
+                authContainer.innerHTML = `<button onclick="openLoginModal()" id="login-nav-btn" class="text-xs font-semibold px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700/60 flex items-center space-x-1.5 shrink-0"><i class="fa-solid fa-lock text-[10px]"></i><span>Admin Login</span></button>`;
+                createBtn.classList.remove('flex');
+                createBtn.classList.add('hidden');
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden');
+            document.getElementById('login-modal').classList.add('flex');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.remove('flex');
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('admin-user').value = '';
+            document.getElementById('admin-password').value = '';
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const userInput = document.getElementById('admin-user').value.trim();
+            const passInput = document.getElementById('admin-password').value;
+
+            if (userInput === ADMIN_USER && passInput === ADMIN_PASS) {
+                isAdmin = true;
+                localStorage.setItem('nexus_is_admin', 'true');
+                closeLoginModal();
+                updateAuthUI();
+                if(currentPostId !== null) openArticle(currentPostId);
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            isAdmin = false;
+            localStorage.setItem('nexus_is_admin', 'false');
+            updateAuthUI();
+            if(currentPostId !== null) {
+                openArticle(currentPostId);
+            } else {
+                renderFeed();
+            }
+        }
+
+        function renderFeed() {
+            document.getElementById('feed-view').classList.remove('hidden');
+            document.getElementById('detail-view').classList.add('hidden');
+            document.getElementById('mobile-filter-container').classList.remove('hidden');
+            currentPostId = null;
+
+            const grid = document.getElementById('feed-grid');
+            grid.innerHTML = '';
+
+            const filteredPosts = currentTab === 'all' 
+                ? posts 
+                : posts.filter(p => p.type === currentTab);
+
+            if (filteredPosts.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-500">
+                        <i class="fa-solid fa-screwdriver-wrench text-4xl mb-3"></i>
+                        <p class="text-sm">No technical guides found in this category.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredPosts.forEach(post => {
+                let thumbnailPreview = '';
+                if (post.type === 'pic') {
+                    thumbnailPreview = `<div class="overflow-hidden rounded-xl mb-4 h-44 bg-slate-900"><img src="${post.media}" alt="${post.title}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"></div>`;
+                } else if (post.type === 'vlog') {
+                    thumbnailPreview = `
+                        <div class="overflow-hidden rounded-xl mb-4 h-44 bg-slate-900 relative flex items-center justify-center border border-slate-800">
+                            <div class="absolute inset-0 opacity-40 bg-gradient-to-tr from-brand-900 to-slate-900"></div>
+                            <div class="w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center shadow-lg shadow-brand-600/40 z-10 group-hover:scale-110 transition-all">
+                                <i class="fa-solid fa-play ml-0.5"></i>
+                            </div>
+                            <span class="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-semibold bg-black/70 text-slate-300 z-10">MOTO VLOG</span>
+                        </div>`;
+                } else {
+                    thumbnailPreview = `
+                        <div class="overflow-hidden rounded-xl mb-4 h-32 bg-slate-950 p-4 border border-slate-800/80 flex flex-col justify-between">
+                            <div class="text-xs font-semibold text-brand-400 uppercase tracking-widest"><i class="fa-solid fa-wrench mr-1.5"></i> Tech Breakdown</div>
+                            <p class="text-xs text-slate-400 line-clamp-2">${escapeHtml(post.content)}</p>
+                        </div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = "group bg-slate-900 border border-slate-800/80 rounded-2xl p-5 flex flex-col justify-between shadow-xl hover:border-slate-700 transition-all cursor-pointer";
+                card.onclick = () => openArticle(post.id);
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 mb-3">
+                            <span class="uppercase tracking-wider px-2.5 py-1 rounded-md bg-slate-800 font-semibold text-brand-400">${post.type}</span>
+                            <span>${post.date}</span>
+                        </div>
+                        ${thumbnailPreview}
+                        <h4 class="font-bold text-base text-slate-100 group-hover:text-brand-400 transition-colors mb-1">${escapeHtml(post.title)}</h4>
+                    </div>
+                    <div class="border-t border-slate-800/80 pt-3 mt-4 flex items-center justify-between text-xs text-slate-500">
+                        <span>By ${escapeHtml(post.author)}</span>
+                        <span><i class="fa-regular fa-comment mr-1"></i> ${post.comments.length}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openArticle(postId) {
+            const post = posts.find(p => p.id === postId);
+            if(!post) return;
+
+            currentPostId = postId;
+            document.getElementById('feed-view').classList.add('hidden');
+            document.getElementById('detail-view').classList.remove('hidden');
+            document.getElementById('mobile-filter-container').classList.add('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            let mediaHtml = '';
+            if (post.type === 'pic') {
+                mediaHtml = `<div class="overflow-hidden rounded-2xl mb-6 bg-slate-900 max-h-[500px] flex items-center justify-center"><img src="${post.media}" alt="${post.title}" class="w-full h-full object-contain"></div>`;
+            } else if (post.type === 'vlog') {
+                let embedUrl = post.media;
+                if(embedUrl.includes('watch?v=')) {
+                    embedUrl = embedUrl.replace('watch?v=', 'embed/');
+                }
+                mediaHtml = `<div class="overflow-hidden rounded-2xl mb-6 h-80 sm:h-96 bg-slate-900 border border-slate-800"><iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+            }
+
+            let adminPostActions = isAdmin ? `
+                <div class="flex items-center space-x-2 mb-6 p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">Admin Tools:</span>
+                    <button onclick="openEditModal(${post.id})" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-brand-400 border border-slate-700 transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-pen-to-square"></i><span>Edit Guide</span>
+                    </button>
+                    <button onclick="deletePost(${post.id})" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/40 text-xs font-medium text-red-400 border border-red-900/50 transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-trash"></i><span>Delete Guide</span>
+                    </button>
+                </div>
+            ` : '';
+
+            let commentsHtml = post.comments.map((c, index) => {
+                let commentPhotoHtml = c.media ? `<div class="mt-2.5 overflow-hidden rounded-xl max-w-xs max-h-48 bg-slate-950 border border-slate-800"><img src="${c.media}" class="w-full h-full object-cover"></div>` : '';
+                return `
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs mb-3 flex items-start justify-between">
+                        <div>
+                            <span class="font-semibold text-brand-400 text-sm block mb-1">${escapeHtml(c.name)}</span> 
+                            <span class="text-slate-300 leading-relaxed block">${escapeHtml(c.text)}</span>
+                            ${commentPhotoHtml}
+                        </div>
+                        ${isAdmin ? `<button onclick="deleteComment(${post.id}, ${index})" class="text-red-400 hover:text-red-300 ml-3 px-2 py-1 bg-red-950/40 rounded border border-red-900/50 transition-colors" title="Delete Comment"><i class="fa-solid fa-trash text-[10px]"></i></button>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            const container = document.getElementById('detail-content-container');
+            container.innerHTML = `
+                ${adminPostActions}
+                <article class="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl mb-8">
+                    <div class="flex items-center justify-between text-xs text-slate-400 mb-4">
+                        <span class="uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 font-semibold text-brand-400">${post.type}</span>
+                        <span>Published on ${post.date} by ${escapeHtml(post.author)}</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-100 mb-6 leading-snug">${escapeHtml(post.title)}</h1>
+                    ${mediaHtml}
+                    <div class="text-sm sm:text-base text-slate-300 leading-relaxed whitespace-pre-line space-y-4 mb-8">${escapeHtml(post.content)}</div>
+                </article>
+
+                <!-- Comments Section -->
+                <section class="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                    <h3 class="text-lg font-bold mb-4 flex items-center space-x-2">
+                        <i class="fa-regular fa-comments text-brand-500"></i>
+                        <span>Rider Discussions (${post.comments.length})</span>
+                    </h3>
+
+                    <!-- Add Comment Form with Image Option -->
+                    <form onsubmit="handleAddComment(event, ${post.id})" class="mb-6 space-y-3 bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Join the discussion (Photo optional)</h4>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" placeholder="Your Rider Name" required class="sm:w-1/3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 comment-name">
+                            <input type="text" placeholder="Share your thoughts or ask a question..." required class="sm:w-2/3 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 comment-text">
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 pt-1">
+                            <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Attach Photo:</label>
+                            <input type="file" accept="image/*" class="comment-file text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700">
+                        </div>
+                        <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white font-medium px-4 py-2 rounded-xl text-xs transition-all shadow-lg shadow-brand-600/20">Post Comment</button>
+                    </form>
+
+                    <!-- List of Comments -->
+                    <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                        ${commentsHtml || '<p class="text-xs text-slate-500 italic py-4 text-center">No comments yet. Start the conversation!</p>'}
+                    </div>
+                </section>
+            `;
+        }
+
+        function deleteComment(postId, commentIndex) {
+            if(!isAdmin) return;
+            const post = posts.find(p => p.id === postId);
+            if (post) {
+                post.comments.splice(commentIndex, 1);
+                localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
+                openArticle(postId);
+            }
+        }
+
+        function deletePost(postId) {
+            if(!isAdmin) return;
+            if(confirm('Are you sure you want to delete this guide completely?')) {
+                posts = posts.filter(p => p.id !== postId);
+                localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
+                goHome();
+            }
+        }
+
+        function goHome() {
+            renderFeed();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = "tab-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:text-white";
+            });
+            const activeBtn = document.getElementById(`btn-${tab}`);
+            if(activeBtn) activeBtn.className = "tab-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all bg-brand-600 text-white shadow";
+
+            document.querySelectorAll('.m-tab-btn').forEach(btn => {
+                btn.className = "m-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800";
+            });
+            const activeMBtn = document.getElementById(`m-btn-${tab}`);
+            if(activeMBtn) activeMBtn.className = "m-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap bg-brand-600 text-white shadow";
+
+            renderFeed();
+        }
+
+        function openModal() {
+            if(!isAdmin) return;
+            document.getElementById('edit-post-id').value = '';
+            document.getElementById('modal-heading').innerText = 'Publish Bike Tech Guide';
+            document.getElementById('form-submit-btn').innerText = 'Publish Guide';
+            document.getElementById('post-form').reset();
+            document.getElementById('existing-media-data').value = '';
+            document.getElementById('create-modal').classList.remove('hidden');
+            document.getElementById('create-modal').classList.add('flex');
+            toggleFormFields();
+        }
+
+        function openEditModal(postId) {
+            if(!isAdmin) return;
+            const post = posts.find(p => p.id === postId);
+            if(!post) return;
+
+            document.getElementById('edit-post-id').value = post.id;
+            document.getElementById('modal-heading').innerText = 'Edit Bike Tech Guide';
+            document.getElementById('form-submit-btn').innerText = 'Save Changes';
+            
+            document.getElementById('post-type').value = post.type;
+            document.getElementById('post-title').value = post.title;
+            document.getElementById('post-content').value = post.content;
+            
+            if(post.type === 'vlog') {
+                document.getElementById('post-media-url').value = post.media || '';
+            } else if(post.type === 'pic') {
+                document.getElementById('existing-media-data').value = post.media || '';
+            }
+
+            toggleFormFields();
+            document.getElementById('create-modal').classList.remove('hidden');
+            document.getElementById('create-modal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('create-modal').classList.remove('flex');
+            document.getElementById('create-modal').classList.add('hidden');
+            document.getElementById('post-form').reset();
+        }
+
+        function toggleFormFields() {
+            const type = document.getElementById('post-type').value;
+            const urlContainer = document.getElementById('media-url-container');
+            const fileContainer = document.getElementById('media-file-container');
+            const urlInput = document.getElementById('post-media-url');
+            const fileInput = document.getElementById('post-media-file');
+
+            urlContainer.classList.add('hidden');
+            fileContainer.classList.add('hidden');
+            urlInput.removeAttribute('required');
+            fileInput.removeAttribute('required');
+
+            if (type === 'vlog') {
+                urlContainer.classList.remove('hidden');
+                urlInput.setAttribute('required', 'true');
+            } else if (type === 'pic') {
+                fileContainer.classList.remove('hidden');
+                const editId = document.getElementById('edit-post-id').value;
+                const existingData = document.getElementById('existing-media-data').value;
+                if (!editId || !existingData) {
+                    fileInput.setAttribute('required', 'true');
+                }
+            }
+        }
+
+        function handlePostSubmit(e) {
+            e.preventDefault();
+            if (!isAdmin) return;
+
+            const editId = document.getElementById('edit-post-id').value;
+            const type = document.getElementById('post-type').value;
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            
+            let mediaValue = '';
+            if (type === 'vlog') {
+                mediaValue = document.getElementById('post-media-url').value;
+                proceedSave(editId, type, title, content, mediaValue);
+            } else if (type === 'pic') {
+                const fileInput = document.getElementById('post-media-file');
+                if (fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(uploadEvent) {
+                        mediaValue = uploadEvent.target.result;
+                        proceedSave(editId, type, title, content, mediaValue);
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    mediaValue = document.getElementById('existing-media-data').value;
+                    proceedSave(editId, type, title, content, mediaValue);
+                }
+            } else {
+                proceedSave(editId, type, title, content, '');
+            }
+        }
+
+        function proceedSave(editId, type, title, content, media) {
+            if (editId) {
+                const post = posts.find(p => p.id == editId);
+                if (post) {
+                    post.type = type;
+                    post.title = title;
+                    post.content = content;
+                    post.media = media;
+                    localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
+                    closeModal();
+                    openArticle(post.id);
+                }
+            } else {
+                const newPost = {
+                    id: Date.now(),
+                    type,
+                    title,
+                    content,
+                    media,
+                    author: 'Utsha',
+                    date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                    comments: []
+                };
+
+                posts.unshift(newPost);
+                localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
+                closeModal();
+                renderFeed();
+            }
+        }
+
+        function handleAddComment(e, postId) {
+            e.preventDefault();
+            const form = e.target;
+            const nameInput = form.querySelector('.comment-name');
+            const textInput = form.querySelector('.comment-text');
+            const fileInput = form.querySelector('.comment-file');
+
+            const post = posts.find(p => p.id === postId);
+            if (!post) return;
+
+            const saveCommentObj = (commentMedia) => {
+                post.comments.push({
+                    name: nameInput.value.trim(),
+                    text: textInput.value.trim(),
+                    media: commentMedia || ''
+                });
+                localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
+                openArticle(postId);
+            };
+
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(uploadEvent) {
+                    saveCommentObj(uploadEvent.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                saveCommentObj('');
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        updateAuthUI();
+        renderFeed();
+    </script>
+</body>
+</html>
