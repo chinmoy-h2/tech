@@ -82,26 +82,39 @@
                 </div>
             </div>
 
+            <!-- SEARCH BAR WITH AUTO-SUGGESTIONS -->
+            <div class="relative flex-1 max-w-xs mx-2">
+                <div class="relative flex items-center">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 text-gray-500 text-xs"></i>
+                    <input type="text" id="search-input" oninput="handleSearchInput(this.value)" placeholder="Search title, author..." class="w-full bg-darkBg border border-panelBorder focus:border-nxCyan text-xs text-white pl-8 pr-8 py-1.5 rounded focus:outline-none transition">
+                    <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute right-2 text-gray-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <!-- Suggestions Dropdown -->
+                <div id="search-suggestions" class="hidden absolute top-full left-0 right-0 mt-1 bg-cardBg border border-nxCyan/40 rounded shadow-2xl z-50 max-h-48 overflow-y-auto">
+                    <!-- Dynamic suggestions -->
+                </div>
+            </div>
+
             <!-- Categories Nav -->
             <nav class="flex items-center space-x-2 text-xs">
                 <button onclick="filterCategory('all')" id="btn-all" class="px-3 py-1.5 rounded bg-hornet text-white font-bold transition">
-                    <i class="fa-solid fa-layer-group mr-1"></i> ALL ARTICLES
+                    <i class="fa-solid fa-layer-group mr-1"></i> ALL
                 </button>
                 <button onclick="filterCategory('tech')" id="btn-tech" class="px-3 py-1.5 rounded bg-panelBorder hover:bg-gray-800 text-gray-300 font-bold transition">
-                    <i class="fa-solid fa-wrench mr-1"></i> TECH GUIDES
+                    <i class="fa-solid fa-wrench mr-1"></i> TECH
                 </button>
                 <button onclick="filterCategory('vlog')" id="btn-vlog" class="px-3 py-1.5 rounded bg-panelBorder hover:bg-gray-800 text-gray-300 font-bold transition">
-                    <i class="fa-solid fa-video mr-1"></i> MOTO VLOGS
+                    <i class="fa-solid fa-video mr-1"></i> VLOGS
                 </button>
                 <button onclick="filterCategory('gallery')" id="btn-gallery" class="px-3 py-1.5 rounded bg-panelBorder hover:bg-gray-800 text-gray-300 font-bold transition">
-                    <i class="fa-solid fa-images mr-1"></i> GARAGE GALLERY
+                    <i class="fa-solid fa-images mr-1"></i> GALLERY
                 </button>
             </nav>
 
             <!-- Admin Actions -->
             <div class="flex items-center space-x-2">
                 <button id="admin-login-btn" onclick="openLoginModal()" class="px-3 py-1.5 bg-nxCyan/10 border border-nxCyan/40 hover:bg-nxCyan/20 text-nxCyan text-xs rounded font-bold transition">
-                    <i class="fa-solid fa-lock mr-1"></i> ADMIN LOGIN
+                    <i class="fa-solid fa-lock mr-1"></i> LOGIN
                 </button>
                 <button id="admin-add-btn" onclick="openCreateModal()" class="hidden px-3 py-1.5 bg-hornet text-white text-xs rounded font-bold hover:bg-red-700 transition glow-red">
                     <i class="fa-solid fa-plus mr-1"></i> NEW POST
@@ -118,12 +131,12 @@
         <!-- Feed View -->
         <div id="feed-view">
             <div id="posts-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Dynamic Posts Card Insertion -->
+                <!-- Dynamic Posts -->
             </div>
             <div id="empty-state" class="hidden text-center py-16 cyber-border bg-cardBg rounded-lg">
                 <i class="fa-solid fa-folder-open text-5xl text-hornet mb-4"></i>
-                <h3 class="text-lg font-bold text-gray-200 uppercase tracking-widest">No Articles Published</h3>
-                <p class="text-xs text-gray-500 mt-1">No content available in this section yet.</p>
+                <h3 class="text-lg font-bold text-gray-200 uppercase tracking-widest">No Articles Found</h3>
+                <p class="text-xs text-gray-500 mt-1">Try resetting your search query or category filter.</p>
             </div>
         </div>
 
@@ -197,7 +210,6 @@
                 <div id="media-file-container">
                     <label class="block text-xs text-gray-400 mb-1">SELECT IMAGES (MULTIPLE ALLOWED)</label>
                     <input type="file" id="post-media-file" multiple accept="image/*" class="w-full bg-darkBg border border-panelBorder rounded p-1.5 text-xs text-gray-300 focus:outline-none">
-                    <span class="text-[10px] text-gray-500">Images will be compressed automatically before saving.</span>
                 </div>
 
                 <div id="media-url-container" class="hidden">
@@ -243,8 +255,6 @@
         };
 
         const app = initializeApp(firebaseConfig);
-
-        // Force Long Polling to avoid 404 RPC Websocket Connection Drops
         const db = initializeFirestore(app, {
             experimentalForceLongPolling: true,
             useFetchStreams: false
@@ -254,16 +264,16 @@
         
         window.allPosts = [];
         window.currentCategory = 'all';
+        window.searchQuery = '';
         window.isAdmin = localStorage.getItem('nx_admin') === 'true';
 
-        // Safe helper for media formats (String vs Array)
         function getMediaList(mediaData) {
             if (!mediaData) return [];
             if (Array.isArray(mediaData)) return mediaData;
             return [mediaData];
         }
 
-        // Render UI
+        // Main Render Function
         window.renderFeed = function() {
             const container = document.getElementById('posts-container');
             const emptyState = document.getElementById('empty-state');
@@ -271,9 +281,22 @@
             
             container.innerHTML = '';
 
-            const filtered = window.currentCategory === 'all' 
-                ? window.allPosts 
-                : window.allPosts.filter(p => p.type === window.currentCategory);
+            let filtered = window.allPosts;
+
+            // Category Filter
+            if (window.currentCategory !== 'all') {
+                filtered = filtered.filter(p => p.type === window.currentCategory);
+            }
+
+            // Search Query Filter
+            if (window.searchQuery.trim() !== '') {
+                const q = window.searchQuery.toLowerCase();
+                filtered = filtered.filter(p => 
+                    (p.title && p.title.toLowerCase().includes(q)) || 
+                    (p.author && p.author.toLowerCase().includes(q)) ||
+                    (p.content && p.content.toLowerCase().includes(q))
+                );
+            }
 
             if (!filtered || filtered.length === 0) {
                 if (emptyState) emptyState.classList.remove('hidden');
@@ -307,7 +330,7 @@
                             ${mediaList.length > 1 ? `<span class="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded"><i class="fa-solid fa-images mr-1"></i>+${mediaList.length - 1}</span>` : ''}
                         </div>
                         <div class="p-4">
-                            <div class="text-[10px] text-gray-500 mb-1">${post.date || ''} • BY ${post.author || 'UTSHA'}</div>
+                            <div class="text-[10px] text-gray-500 mb-1">${post.date || ''} • BY <span class="text-nxCyan font-bold">${post.author || 'UTSHA'}</span></div>
                             <h3 class="font-bold text-white text-base group-hover:text-nxCyan transition cursor-pointer" onclick="openArticle('${post.id}')">
                                 ${post.title || 'Untitled Article'}
                             </h3>
@@ -327,9 +350,8 @@
             });
         };
 
-        // Fetch Posts Safely from Firestore
+        // Fetch Posts Safely
         async function loadPosts() {
-            console.log("Fetching posts from Firestore...");
             try {
                 const q = query(postsRef, orderBy("timestamp", "desc"));
                 const querySnapshot = await getDocs(q);
@@ -339,15 +361,14 @@
                     window.allPosts.push({ id: doc.id, ...doc.data() });
                 });
                 
-                console.log("Posts fetched successfully:", window.allPosts.length);
                 window.renderFeed();
             } catch (error) {
                 console.error("Firestore Load Error:", error);
             }
         }
 
-        // Open Full Article
-        window.openArticle = function(id) {
+        // Open Article with History State (Fixes PC/Phone Back Button)
+        window.openArticle = function(id, isNavigatingBack = false) {
             const post = window.allPosts.find(p => p.id === id);
             if (!post) return;
 
@@ -372,8 +393,23 @@
                 ${mediaDisplay}
                 <div class="text-sm text-gray-300 whitespace-pre-line leading-relaxed">${post.content}</div>
             `;
+
+            // Push History State so browser/phone back button works
+            if (!isNavigatingBack) {
+                history.pushState({ view: 'detail', id: id }, post.title, `#article-${id}`);
+            }
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
+
+        // Handle Browser / Phone Back Button Push
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.view === 'detail') {
+                window.openArticle(e.state.id, true);
+            } else {
+                goHome(true);
+            }
+        });
 
         // Image Compression
         function compressImage(file, maxWidth = 800, quality = 0.6) {
@@ -404,7 +440,7 @@
             });
         }
 
-        // Handle Post Submission
+        // Post Submit
         window.handlePostSubmit = async function(e) {
             e.preventDefault();
             if (!window.isAdmin) return;
@@ -497,14 +533,11 @@
             document.getElementById('post-modal').classList.remove('hidden');
         };
 
-        // Update UI Admin Actions on Init
         updateAdminUI();
-
-        // Initial Load
         loadPosts();
     </script>
 
-    <!-- GLOBAL UI HANDLERS -->
+    <!-- GLOBAL UI HANDLERS & SEARCH INTERACTION -->
     <script>
         function updateAdminUI() {
             if (window.isAdmin) {
@@ -518,12 +551,63 @@
             }
         }
 
+        // Live Search Input Handler
+        function handleSearchInput(val) {
+            window.searchQuery = val;
+            const clearBtn = document.getElementById('clear-search-btn');
+            const sugBox = document.getElementById('search-suggestions');
+
+            if (val.trim().length > 0) {
+                clearBtn.classList.remove('hidden');
+                
+                // Generate Auto Suggestions
+                const q = val.toLowerCase();
+                const suggestions = new Set();
+
+                (window.allPosts || []).forEach(p => {
+                    if (p.author && p.author.toLowerCase().includes(q)) suggestions.add(p.author);
+                    if (p.title && p.title.toLowerCase().includes(q)) suggestions.add(p.title);
+                });
+
+                if (suggestions.size > 0) {
+                    sugBox.innerHTML = Array.from(suggestions).slice(0, 5).map(s => 
+                        `<div onclick="selectSuggestion('${s.replace(/'/g, "\\'")}')" class="p-2 text-xs text-gray-300 hover:bg-nxCyan/20 hover:text-nxCyan cursor-pointer transition flex items-center justify-between border-b border-panelBorder/40">
+                            <span>${s}</span>
+                            <i class="fa-solid fa-arrow-turn-down text-[9px] text-nxCyan"></i>
+                        </div>`
+                    ).join('');
+                    sugBox.classList.remove('hidden');
+                } else {
+                    sugBox.classList.add('hidden');
+                }
+            } else {
+                clearBtn.classList.add('hidden');
+                sugBox.classList.add('hidden');
+            }
+
+            if (typeof window.renderFeed === 'function') window.renderFeed();
+        }
+
+        function selectSuggestion(val) {
+            document.getElementById('search-input').value = val;
+            window.searchQuery = val;
+            document.getElementById('search-suggestions').classList.add('hidden');
+            if (typeof window.renderFeed === 'function') window.renderFeed();
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            window.searchQuery = '';
+            document.getElementById('clear-search-btn').classList.add('hidden');
+            document.getElementById('search-suggestions').classList.add('hidden');
+            if (typeof window.renderFeed === 'function') window.renderFeed();
+        }
+
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('login-user').value;
             const p = document.getElementById('login-pass').value;
 
-            // Updated Admin Credentials
             if (u === 'utsha' && p === 'chakroborty2.0') {
                 window.isAdmin = true;
                 localStorage.setItem('nx_admin', 'true');
@@ -544,7 +628,6 @@
 
         function filterCategory(cat) {
             window.currentCategory = cat;
-            
             ['all', 'tech', 'vlog', 'gallery'].forEach(c => {
                 const btn = document.getElementById(`btn-${c}`);
                 if (c === cat) {
@@ -553,13 +636,16 @@
                     btn.className = "px-3 py-1.5 rounded bg-panelBorder hover:bg-gray-800 text-gray-300 font-bold transition";
                 }
             });
-
             goHome();
         }
 
-        function goHome() {
+        function goHome(isNavigatingBack = false) {
             document.getElementById('detail-view').classList.add('hidden');
             document.getElementById('feed-view').classList.remove('hidden');
+            
+            if (!isNavigatingBack && location.hash !== '') {
+                history.pushState({ view: 'feed' }, 'HornetTech NX', location.pathname);
+            }
             if (typeof window.renderFeed === 'function') window.renderFeed();
         }
 
@@ -592,6 +678,15 @@
                 document.getElementById('media-url-container').classList.add('hidden');
             }
         }
+
+        // Close suggestions dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const sugBox = document.getElementById('search-suggestions');
+            const searchInput = document.getElementById('search-input');
+            if (sugBox && !sugBox.contains(e.target) && e.target !== searchInput) {
+                sugBox.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
