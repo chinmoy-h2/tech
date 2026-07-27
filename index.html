@@ -206,7 +206,7 @@
                     </div>
                 </div>
 
-                <!-- PHOTO UPLOAD (AVAILABLE IN EVERY SECTION) -->
+                <!-- PHOTO UPLOAD SECTION -->
                 <div class="w-full">
                     <label class="block text-xs text-nxCyan font-bold mb-1"><i class="fa-solid fa-image mr-1"></i> UPLOAD PHOTOS (MULTIPLE ALLOWED)</label>
                     <input type="file" id="post-media-file" multiple accept="image/*" class="w-full bg-darkBg border border-panelBorder rounded p-2 text-xs text-gray-300 focus:outline-none focus:border-nxCyan">
@@ -214,7 +214,7 @@
 
                 <!-- SEPARATE SPACE FOR YOUTUBE / EXTERNAL LINK -->
                 <div class="w-full">
-                    <label class="block text-xs text-red-500 font-bold mb-1"><i class="fa-brands fa-youtube mr-1"></i> VIDEO / EXTERNAL LINK (OPTIONAL)</label>
+                    <label class="block text-xs text-red-500 font-bold mb-1"><i class="fa-brands fa-youtube mr-1"></i> YOUTUBE / VIDEO URL (OPTIONAL)</label>
                     <input type="url" id="post-media-url" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." class="w-full bg-darkBg border border-panelBorder rounded p-2.5 text-sm text-white focus:outline-none focus:border-nxCyan">
                 </div>
 
@@ -337,7 +337,10 @@
                 
                 let mediaHTML = '';
                 
-                if (hasVideo) {
+                // Prioritize photo thumbnail if present, fallback to video thumbnail
+                if (mediaList.length > 0) {
+                    mediaHTML = `<img src="${mediaList[0]}" class="w-full h-48 object-cover group-hover:scale-105 transition duration-500">`;
+                } else if (hasVideo) {
                     const videoId = getYouTubeVideoID(post.videoUrl);
                     if (videoId) {
                         const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
@@ -351,8 +354,6 @@
                     } else {
                         mediaHTML = `<div class="w-full h-48 bg-black flex items-center justify-center text-nxCyan"><i class="fa-solid fa-circle-play text-4xl"></i></div>`;
                     }
-                } else if (mediaList.length > 0) {
-                    mediaHTML = `<img src="${mediaList[0]}" class="w-full h-48 object-cover group-hover:scale-105 transition duration-500">`;
                 } else {
                     mediaHTML = `<div class="w-full h-48 bg-darkBg flex items-center justify-center text-gray-600"><i class="fa-solid fa-wrench text-3xl"></i></div>`;
                 }
@@ -409,7 +410,7 @@
             }
         }
 
-        // Open Article Page with Separate Link Section
+        // Open Article Page rendering both Photos AND Videos
         window.openArticle = function(id, isNavigatingBack = false) {
             const post = window.allPosts.find(p => p.id === id);
             if (!post) return;
@@ -421,7 +422,14 @@
             let mediaDisplay = '';
             let linkSection = '';
 
-            // Video Player Display
+            // Render Uploaded Photos Gallery FIRST (If exists)
+            if (mediaList.length > 0) {
+                mediaDisplay += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    ${mediaList.map(img => `<img src="${img}" class="w-full h-64 object-cover rounded border border-panelBorder">`).join('')}
+                </div>`;
+            }
+
+            // Render Embedded Video Player SECOND (If exists)
             if (post.videoUrl && post.videoUrl.trim() !== '') {
                 const embedUrl = getYouTubeEmbedURL(post.videoUrl);
                 mediaDisplay += `
@@ -429,9 +437,9 @@
                         <iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                     </div>`;
 
-                // SEPARATE DEDICATED SPACE FOR LINK IN VIEW PAGE
+                // Dedicated Link Box
                 linkSection = `
-                    <div class="mt-6 p-3 bg-darkBg border border-panelBorder rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="mt-4 p-3 bg-darkBg border border-panelBorder rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3">
                         <div class="flex items-center space-x-2 overflow-hidden w-full">
                             <i class="fa-solid fa-link text-nxCyan text-sm"></i>
                             <span class="text-xs text-gray-400 font-bold uppercase">ATTACHED LINK:</span>
@@ -441,13 +449,6 @@
                             <i class="fa-regular fa-copy mr-1"></i> Copy Link
                         </button>
                     </div>`;
-            }
-
-            // Image Gallery Display
-            if (mediaList.length > 0) {
-                mediaDisplay += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    ${mediaList.map(img => `<img src="${img}" class="w-full h-64 object-cover rounded border border-panelBorder">`).join('')}
-                </div>`;
             }
 
             document.getElementById('detail-content').innerHTML = `
@@ -503,7 +504,7 @@
             });
         }
 
-        // Post Creation / Editing
+        // Post Creation / Editing Logic
         window.handlePostSubmit = async function(e) {
             e.preventDefault();
             if (!window.isAdmin) return;
@@ -521,14 +522,21 @@
             const fileInput = document.getElementById('post-media-file');
             let mediaArray = [];
 
+            // Read existing images if updating
+            let existingData = document.getElementById('existing-media-data').value;
+            if (existingData) {
+                mediaArray = existingData.split(',');
+            }
+
+            // Compress and add newly uploaded files
             if (fileInput.files && fileInput.files.length > 0) {
+                let newImages = [];
                 for (let file of fileInput.files) {
                     const compressed = await compressImage(file);
-                    mediaArray.push(compressed);
+                    newImages.push(compressed);
                 }
-            } else {
-                let existingData = document.getElementById('existing-media-data').value;
-                mediaArray = existingData ? existingData.split(',') : [];
+                // Combine new and old images
+                mediaArray = [...newImages, ...mediaArray];
             }
 
             try {
