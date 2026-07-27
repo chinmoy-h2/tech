@@ -183,7 +183,7 @@
                 author: 'Utsha',
                 date: 'July 26, 2026',
                 comments: [
-                    { name: 'Rider Fahim', text: 'Awesome initiative Utsha! Looking forward to your chain adjustment tutorial.', media: '' }
+                    { name: 'Rider Fahim', text: 'Awesome initiative Utsha! Looking forward to your chain adjustment tutorial.', media: '', replies: [] }
                 ]
             }
         ];
@@ -305,7 +305,7 @@
                     </div>
                     <div class="border-t border-slate-800/80 pt-3 mt-4 flex items-center justify-between text-xs text-slate-500">
                         <span>By ${escapeHtml(post.author)}</span>
-                        <span><i class="fa-regular fa-comment mr-1"></i> ${post.comments.length}</span>
+                        <span><i class="fa-regular fa-comment mr-1"></i> ${post.comments ? post.comments.length : 0}</span>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -345,16 +345,52 @@
                 </div>
             ` : '';
 
-            let commentsHtml = post.comments.map((c, index) => {
+            let commentsHtml = (post.comments || []).map((c, index) => {
                 let commentPhotoHtml = c.media ? `<div class="mt-2.5 overflow-hidden rounded-xl max-w-xs max-h-48 bg-slate-950 border border-slate-800"><img src="${c.media}" class="w-full h-full object-cover"></div>` : '';
-                return `
-                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs mb-3 flex items-start justify-between">
+                
+                let repliesHtml = (c.replies || []).map((r, rIndex) => `
+                    <div class="mt-2 pl-3 border-l-2 border-brand-500/50 bg-slate-950/60 p-2.5 rounded-r-xl flex items-start justify-between">
                         <div>
-                            <span class="font-semibold text-brand-400 text-sm block mb-1">${escapeHtml(c.name)}</span> 
-                            <span class="text-slate-300 leading-relaxed block">${escapeHtml(c.text)}</span>
-                            ${commentPhotoHtml}
+                            <span class="font-semibold text-brand-400 text-xs block">${escapeHtml(r.name)}</span>
+                            <span class="text-slate-300 text-xs leading-relaxed block">${escapeHtml(r.text)}</span>
                         </div>
-                        ${isAdmin ? `<button onclick="deleteComment(${post.id}, ${index})" class="text-red-400 hover:text-red-300 ml-3 px-2 py-1 bg-red-950/40 rounded border border-red-900/50 transition-colors" title="Delete Comment"><i class="fa-solid fa-trash text-[10px]"></i></button>` : ''}
+                        ${isAdmin ? `<button onclick="deleteReply(${post.id}, ${index}, ${rIndex})" class="text-red-400 hover:text-red-300 ml-2 px-1.5 py-0.5 bg-red-950/40 rounded border border-red-900/50 transition-colors" title="Delete Reply"><i class="fa-solid fa-trash text-[9px]"></i></button>` : ''}
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-xs mb-3">
+                        <div class="flex items-start justify-between">
+                            <div class="w-full">
+                                <span class="font-semibold text-brand-400 text-sm block mb-1">${escapeHtml(c.name)}</span> 
+                                <span class="text-slate-300 leading-relaxed block">${escapeHtml(c.text)}</span>
+                                ${commentPhotoHtml}
+                            </div>
+                            ${isAdmin ? `<button onclick="deleteComment(${post.id}, ${index})" class="text-red-400 hover:text-red-300 ml-3 px-2 py-1 bg-red-950/40 rounded border border-red-900/50 transition-colors shrink-0" title="Delete Comment"><i class="fa-solid fa-trash text-[10px]"></i></button>` : ''}
+                        </div>
+                        
+                        <!-- Reply Button Trigger -->
+                        <div class="mt-2 flex items-center justify-between">
+                            <button onclick="toggleReplyForm(${index})" class="text-[11px] text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1">
+                                <i class="fa-solid fa-reply text-[10px]"></i>
+                                <span>Reply</span>
+                            </button>
+                        </div>
+
+                        <!-- Nested Replies -->
+                        ${repliesHtml ? `<div class="mt-3 space-y-2">${repliesHtml}</div>` : ''}
+
+                        <!-- Inline Reply Form -->
+                        <form id="reply-form-${index}" onsubmit="handleAddReply(event, ${post.id}, ${index})" class="hidden mt-3 pt-3 border-t border-slate-800/80 space-y-2">
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="text" placeholder="Your Name" required class="reply-name sm:w-1/3 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-500">
+                                <input type="text" placeholder="Write a reply..." required class="reply-text sm:w-2/3 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-500">
+                            </div>
+                            <div class="flex justify-end space-x-2">
+                                <button type="button" onclick="toggleReplyForm(${index})" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-[11px]">Cancel</button>
+                                <button type="submit" class="px-3 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-medium">Submit Reply</button>
+                            </div>
+                        </form>
                     </div>
                 `;
             }).join('');
@@ -376,7 +412,7 @@
                 <section class="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
                     <h3 class="text-lg font-bold mb-4 flex items-center space-x-2">
                         <i class="fa-regular fa-comments text-brand-500"></i>
-                        <span>Rider Discussions (${post.comments.length})</span>
+                        <span>Rider Discussions (${(post.comments || []).length})</span>
                     </h3>
 
                     <!-- Add Comment Form with Image Option -->
@@ -399,6 +435,45 @@
                     </div>
                 </section>
             `;
+        }
+
+        function toggleReplyForm(commentIndex) {
+            const form = document.getElementById(`reply-form-${commentIndex}`);
+            if (form) {
+                form.classList.toggle('hidden');
+            }
+        }
+
+        function handleAddReply(e, postId, commentIndex) {
+            e.preventDefault();
+            const form = e.target;
+            const nameInput = form.querySelector('.reply-name');
+            const textInput = form.querySelector('.reply-text');
+
+            const post = posts.find(p => p.id === postId);
+            if (!post || !post.comments[commentIndex]) return;
+
+            if (!post.comments[commentIndex].replies) {
+                post.comments[commentIndex].replies = [];
+            }
+
+            post.comments[commentIndex].replies.push({
+                name: nameInput.value.trim(),
+                text: textInput.value.trim()
+            });
+
+            localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
+            openArticle(postId);
+        }
+
+        function deleteReply(postId, commentIndex, replyIndex) {
+            if(!isAdmin) return;
+            const post = posts.find(p => p.id === postId);
+            if (post && post.comments[commentIndex] && post.comments[commentIndex].replies) {
+                post.comments[commentIndex].replies.splice(replyIndex, 1);
+                localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
+                openArticle(postId);
+            }
         }
 
         function deleteComment(postId, commentIndex) {
@@ -581,10 +656,12 @@
             if (!post) return;
 
             const saveCommentObj = (commentMedia) => {
+                if (!post.comments) post.comments = [];
                 post.comments.push({
                     name: nameInput.value.trim(),
                     text: textInput.value.trim(),
-                    media: commentMedia || ''
+                    media: commentMedia || '',
+                    replies: []
                 });
                 localStorage.setItem('hornet_nexus_posts', JSON.stringify(posts));
                 openArticle(postId);
