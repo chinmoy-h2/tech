@@ -213,8 +213,8 @@
                 </div>
 
                 <div id="media-url-container" class="hidden">
-                    <label class="block text-xs text-gray-400 mb-1">YOUTUBE EMBED / VIDEO URL</label>
-                    <input type="text" id="post-media-url" placeholder="https://www.youtube.com/embed/..." class="w-full bg-darkBg border border-panelBorder rounded p-2 text-sm text-white focus:outline-none focus:border-nxCyan">
+                    <label class="block text-xs text-gray-400 mb-1">YOUTUBE VIDEO URL</label>
+                    <input type="text" id="post-media-url" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." class="w-full bg-darkBg border border-panelBorder rounded p-2 text-sm text-white focus:outline-none focus:border-nxCyan">
                 </div>
 
                 <div>
@@ -267,6 +267,32 @@
         window.searchQuery = '';
         window.isAdmin = localStorage.getItem('nx_admin') === 'true';
 
+        // Helper: Convert Any Youtube URL to Embed Format
+        function getYouTubeEmbedURL(url) {
+            if (!url) return '';
+            let videoId = '';
+            
+            if (url.includes('youtu.be/')) {
+                videoId = url.split('youtu.be/')[1].split('?')[0];
+            } else if (url.includes('youtube.com/watch')) {
+                const urlParams = new URLSearchParams(url.split('?')[1]);
+                videoId = urlParams.get('v');
+            } else if (url.includes('youtube.com/embed/')) {
+                return url;
+            }
+
+            return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+        }
+
+        // Helper: Extract Video ID for Thumbnail
+        function getYouTubeVideoID(url) {
+            const embed = getYouTubeEmbedURL(url);
+            if (embed.includes('/embed/')) {
+                return embed.split('/embed/')[1].split('?')[0];
+            }
+            return null;
+        }
+
         function getMediaList(mediaData) {
             if (!mediaData) return [];
             if (Array.isArray(mediaData)) return mediaData;
@@ -310,8 +336,20 @@
                 const firstMedia = mediaList.length > 0 ? mediaList[0] : '';
                 
                 let mediaHTML = '';
-                if (post.type === 'vlog' && firstMedia && firstMedia.includes('http')) {
-                    mediaHTML = `<div class="aspect-video w-full bg-black flex items-center justify-center text-nxCyan"><i class="fa-solid fa-circle-play text-4xl"></i></div>`;
+                if (post.type === 'vlog' && firstMedia) {
+                    const videoId = getYouTubeVideoID(firstMedia);
+                    if (videoId) {
+                        const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                        mediaHTML = `
+                            <div class="relative w-full h-48 bg-black overflow-hidden group">
+                                <img src="${thumbnailUrl}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-80">
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <i class="fa-solid fa-circle-play text-nxCyan text-5xl drop-shadow-lg group-hover:scale-110 transition"></i>
+                                </div>
+                            </div>`;
+                    } else {
+                        mediaHTML = `<div class="w-full h-48 bg-black flex items-center justify-center text-nxCyan"><i class="fa-solid fa-circle-play text-4xl"></i></div>`;
+                    }
                 } else if (firstMedia) {
                     mediaHTML = `<img src="${firstMedia}" class="w-full h-48 object-cover group-hover:scale-105 transition duration-500">`;
                 } else {
@@ -379,7 +417,11 @@
             let mediaDisplay = '';
 
             if (post.type === 'vlog' && mediaList[0]) {
-                mediaDisplay = `<div class="aspect-video w-full mb-6 rounded overflow-hidden"><iframe src="${mediaList[0]}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
+                const embedUrl = getYouTubeEmbedURL(mediaList[0]);
+                mediaDisplay = `
+                    <div class="aspect-video w-full mb-6 rounded overflow-hidden border border-panelBorder shadow-lg">
+                        <iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>`;
             } else if (mediaList.length > 0) {
                 mediaDisplay = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     ${mediaList.map(img => `<img src="${img}" class="w-full h-64 object-cover rounded border border-panelBorder">`).join('')}
